@@ -1,0 +1,14 @@
+Clientul functioneaza pe urmatorul principiu:
+->Citeste o comanda de la tastatura, daca aceasta nu este valida atunci nu se
+intampla nimic si revenim la primul pas.
+->In functie de comanda citita se apeleaza functia comenzii respective, aceasta
+genereaza mesajul pe care o sa il trimita catre server, si payloadul ca JSON (daca
+este cazul, adica pentru cererile de tip POST). Dupa ce am creat mesajul pe care
+vrem sa il trimitem o sa deschidem un socket pentru a trimite mesajul serverului
+si dupa ce primim un raspuns de la server o sa inchidem socketul, astfel nu trebuie
+sa ne batem capul cu cat timp tine serverul deschis o conexiune. Dupa o sa afisam
+mesajul de succes/eroare in functie de ce am primit de la server. Mai avem doar
+de eliberat memoria utilizata si dupa putem reveni la pasul 1.
+
+E important de retinut ca pentru anumite comenzi o sa avem nevoie de tokenul de
+acces la librarie si/sau cookiul care demonstreaza ca userul este logat.
