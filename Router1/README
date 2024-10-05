@@ -1,0 +1,53 @@
+#Copyright Tunsoiu Dan-Andrei 325CA 2023-2024
+
+Prezentare pe scurt a modului in care functioneaza routerul:
+->Routerul citeste si salveaza in memorie tabela de routare apoi o sorteaza in 
+ordine descrescatoare, pentru a gasi adresa ip pentru next_hop se foloseste o 
+cautare binara, tinanduse cont ca primul element care se potriveste nu este 
+neaparat adresa ideala pe care o cautam
+->Se initializeaza o tabela cu adrese mac care la inceput o sa fie goala, 
+deoarece o sa folosim protocolul ARP pentru a afla adresa mac la care trimitem 
+pachetul dupa ce i-am gasit next_hop-ul
+->Se initializeaza o coada goala, in care o sa tinem minte pachetele care 
+asteapta sa fie trimise cat timp asteptam sa afla adresa mac la care trebuie sa 
+le trimitem
+->Intram in bulca de asteptare a unui pachet
+
+->Asteptam un pachet, dupa ce primim un pachet mai intai verificam daca este 
+intreg (adica daca lungimea lui este minim ether_header, altfel inseamna ca am 
+primit un fragment dintr-un pachet si nu avem ce sa facem cu el), apoi verificam
+ daca este pentru noi (are adresa mac a destinatiei egala cu adresa mac a inter-
+fatei pe care l-am primit, sau are adresa mac egala cu adresa de broadcast), dupa
+care avem doua cazuri posibile:
+
+1)Este un pachet de tipul IP:
+->Verificam ca pachetul e intreg
+->Verificam checksumul ca pachetul sa nu fi fost alterat pe parcurs
+->Verificam daca pachetul ni se adreseaza noua (routerului) si daca da, verificam
+daca e de tipul icmp echo request, cazul in care trimitem inapoi un echo reply
+si reluam asteparea unui pachet
+->Altfel cautam un next_hop, daca nu il gasim trimitem inapoi un mesaj icmp de
+tipul host unrechable (e de notat, ca mesajele de host unrechable par sa fie
+imune intre ele, adica daca nu am gasit un next hop pentru mesaj de tipul host 
+unrechable inseamna ca nu atat cel care a trimis mesajul cat si cel caruia trebuia
+sa ii dam mesajul nu pot fi gasiti, deci nu avem cui sa ii spunem "hei nu ti-am
+gasit destinatarul")
+->Verificam ttl-ul, daca nu mai e valid, trimitem icmp ttl expired
+->Cautam adresa mac a next_hop-ului, daca nu o avem atunci va trebui sa "intrebam"
+next hopul ce adresa mac are, si atunci o sa ii trimitem un ARP Request pt acesta
+si o sa adaugam pachetul actual in coada de asteptare
+->Daca am gasit adresa mac nu mai avem decat sa schimbam adresele din headerul
+ethernet si apoi pachetul nostru e gata sa fie trimis pe interfata in care se
+afla next_hopul
+
+2)Este un pachet de tipul ARP:
+Avem doua mari cazuri:
+	I) Este un ARP Request pentru noi, in acest caz completam pachetul cu
+	adresa mac a interfetei pe care a venit acesta, il setam ca ARP Reply,
+	schimbam restul campurilor ca sa respecte protocolul ARP si il trimitem
+	inapoi
+	II) Este un ARP Reply, asta inseamna ca am primit o adresa mac care ne 
+	lipsea inainte, deci mai intai o sa o adaugam in tabela de adrese mac
+	ca sa o putem folosi si mai tarziu, daca o sa mai avem nevoie de ea, apoi
+	o sa iterm prin coada pachetelor care se afla in asteptare, si o sa le
+	trimitem pe cele care aveau nevoie de adresa mac respectiva
